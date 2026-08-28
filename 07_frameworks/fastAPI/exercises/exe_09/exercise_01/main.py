@@ -40,8 +40,8 @@ def post_register(account: AccountCreate, db: Session = Depends(get_db)):
 # look up by email, verify password, raise 401 with the SAME message
 # for "not found" and "wrong password", otherwise return a welcome message
 @app.post("/login")
-def post_login(email: str, password: str, db: Session = Depends(get_db)):
-    user = db.query(models.Account).filter(models.Account.email == email).first()
-    if user is None or not verify_password(password, user.hashed_password):
+def post_login(account: AccountCreate, db: Session = Depends(get_db)):
+    user = db.query(models.Account).filter(models.Account.email == account.email).first()
+    if user is None or not verify_password(account.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
-    return {"Successfully logged in! Welcome."}
+    return {"message": "Successfully logged in! Welcome."}
