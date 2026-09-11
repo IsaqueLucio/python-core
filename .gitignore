@@ -39,3 +39,8 @@ wheels/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Databases
+*.sqlite3
+*.db
+

@@ -1,0 +1,14 @@
+# Ambientes virtuais e caches
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Configurações e banco de dados local
+.env
+*.db
+*.sqlite3
+
+# Controle de versão
+.git/
+.gitignore
