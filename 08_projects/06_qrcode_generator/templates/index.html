@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pagamento via Pix - QR Code</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --text: #1a202c;
+      --muted: #4a5568;
+      --border: #cbd5e0;
+      --primary: #008060;
+      --primary-hover: #00664d;
+      --focus: #0b57d0;
+      --danger-bg: #fff5f5;
+      --danger-border: #feb2b2;
+      --danger-text: #c53030;
+      --success-text: #00664d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-block-size: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.5;
+    }
+
+    main.card {
+      container-type: inline-size;
+      inline-size: 100%;
+      max-inline-size: 34rem;
+      background-color: var(--surface);
+      border-radius: 0.75rem;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      padding: clamp(1.25rem, 3vw, 2rem);
+    }
+
+    h1 {
+      margin-block: 0 0.5rem;
+      font-size: clamp(1.35rem, 1rem + 1.5vw, 1.75rem);
+      text-align: center;
+    }
+
+    p.subtitle {
+      margin-block: 0 1.25rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+      text-align: center;
+    }
+
+    .form-group {
+      margin-block-end: 1.25rem;
+    }
+
+    label {
+      display: inline-block;
+      font-weight: 600;
+      margin-block-end: 0.4rem;
+      padding-block: 0.25rem;
+    }
+
+    textarea,
+    input[type="text"] {
+      inline-size: 100%;
+      font-size: 1rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      padding: 0.75rem;
+      min-block-size: 48px;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background-color: #fafafa;
+      color: var(--text);
+    }
+
+    textarea {
+      min-block-size: 7.5rem;
+      resize: vertical;
+    }
+
+    textarea:focus-visible,
+    input[type="text"]:focus-visible,
+    button:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      inline-size: 100%;
+      min-block-size: 48px;
+      padding: 0.75rem 1.25rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #ffffff;
+      background-color: var(--primary);
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background-color 0.15s ease, opacity 0.15s ease;
+    }
+
+    button:hover:not(:disabled) {
+      background-color: var(--primary-hover);
+    }
+
+    button:disabled {
+      background-color: #a0aec0;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    @media (pointer: coarse) {
+      textarea,
+      input[type="text"],
+      button {
+        min-block-size: 52px;
+      }
+    }
+
+    .alert-error {
+      margin-block-start: 1rem;
+      padding: 0.75rem 1rem;
+      background-color: var(--danger-bg);
+      border: 1px solid var(--danger-border);
+      color: var(--danger-text);
+      border-radius: 0.5rem;
+      font-weight: 500;
+    }
+
+    .result-section {
+      margin-block-start: 1.5rem;
+      padding-block-start: 1.5rem;
+      border-block-start: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .expired-banner {
+      margin-block-end: 1rem;
+      padding: 0.75rem 1rem;
+      background-color: var(--danger-bg);
+      border: 2px solid var(--danger-text);
+      color: var(--danger-text);
+      border-radius: 0.5rem;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .qr-wrapper {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      inline-size: min(100%, 260px);
+      aspect-ratio: 1 / 1;
+      padding: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      background-color: #ffffff;
+      margin-block-end: 1rem;
+    }
+
+    .qr-wrapper img {
+      inline-size: 100%;
+      block-size: 100%;
+      object-fit: contain;
+      transition: opacity 0.25s ease, filter 0.25s ease;
+    }
+
+    .qr-wrapper.is-expired img {
+      opacity: 0.25;
+      filter: grayscale(100%);
+    }
+
+    .meta-info {
+      margin-block-end: 1.25rem;
+      display: grid;
+      gap: 0.4rem;
+      font-size: 0.95rem;
+    }
+
+    .countdown {
+      font-size: 1.25rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .countdown.is-expired {
+      color: var(--danger-text);
+    }
+
+    .copy-group {
+      text-align: start;
+    }
+
+    .copy-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    @container (min-width: 26rem) {
+      .copy-row {
+        flex-direction: row;
+      }
+
+      .copy-row button {
+        inline-size: auto;
+        min-inline-size: 8.5rem;
+      }
+    }
+
+    .copy-feedback {
+      display: block;
+      min-block-size: 1.4rem;
+      margin-block-start: 0.35rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--success-text);
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Gerador de QR Code Pix</h1>
+    <p class="subtitle">Cole o JSON com <code>copyPasteCode</code> e <code>expiration</code></p>
+
+    <form id="pix-form" action="/api/qr" method="POST" novalidate>
+      <div class="form-group">
+        <label for="json-input">JSON de entrada</label>
+        <textarea
+          id="json-input"
+          name="json_input"
+          rows="5"
+          required
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          aria-describedby="error-box"
+          placeholder='{\n  "copyPasteCode": "000201...",\n  "expiration": "2026-10-28T06:42:13.293"\n}'
+        ></textarea>
+      </div>
+      <button type="submit" id="generate-btn">Gerar QR Code</button>
+    </form>
+
+    <div id="error-box" class="alert-error" role="alert" aria-live="assertive" hidden></div>
+
+    <section id="result-section" class="result-section" aria-live="polite" hidden>
+      <div id="expired-banner" class="expired-banner" role="status" hidden>
+        Pix expirado
+      </div>
+
+      <div id="qr-wrapper" class="qr-wrapper">
+        <img id="qr-image" alt="QR Code para pagamento Pix" src="">
+      </div>
+
+      <div class="meta-info">
+        <div>
+          <strong>Expira em:</strong>
+          <span id="expiration-formatted">--/--/---- --:--:--</span>
+        </div>
+        <div>
+          <strong>Tempo restante:</strong>
+          <span id="countdown" class="countdown">--:--:--</span>
+        </div>
+      </div>
+
+      <div class="copy-group">
+        <label for="copy-paste-input">Pix Copia e Cola</label>
+        <div class="copy-row">
+          <input
+            type="text"
+            id="copy-paste-input"
+            name="copy_paste"
+            readonly
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+          >
+          <button type="button" id="copy-btn">Copiar para o e-mail</button>
+        </div>
+        <span id="copy-feedback" class="copy-feedback" aria-live="polite"></span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const form = document.getElementById('pix-form');
+      const jsonInput = document.getElementById('json-input');
+      const errorBox = document.getElementById('error-box');
+      const resultSection = document.getElementById('result-section');
+      const expiredBanner = document.getElementById('expired-banner');
+      const qrWrapper = document.getElementById('qr-wrapper');
+      const qrImage = document.getElementById('qr-image');
+      const expirationFormatted = document.getElementById('expiration-formatted');
+      const countdownEl = document.getElementById('countdown');
+      const copyPasteInput = document.getElementById('copy-paste-input');
+      const copyBtn = document.getElementById('copy-btn');
+      const copyFeedback = document.getElementById('copy-feedback');
+
+      let countdownTimer = null;
+      let copyFeedbackTimer = null;
+      let currentQrBase64 = '';
+      let currentCopyPaste = '';
+      let currentRawExpiration = '';
+
+      const ptBrFormatter = new Intl.DateTimeFormat('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+
+      function showError(message) {
+        errorBox.textContent = message;
+        errorBox.hidden = false;
+      }
+
+      function clearError() {
+        errorBox.textContent = '';
+        errorBox.hidden = true;
+      }
+
+      jsonInput.addEventListener('input', () => {
+        if (!errorBox.hidden) {
+          clearError();
+        }
+      });
+
+      function parseUserJson(rawText) {
+        const trimmed = rawText.trim();
+        if (!trimmed) {
+          throw new Error('Por favor, cole o JSON antes de gerar o QR Code.');
+        }
+
+        try {
+          return JSON.parse(trimmed);
+        } catch {
+          // Permite colar apenas os pares chave/valor sem as chaves externas { ... }
+          const withoutTrailingComma = trimmed.replace(/,\s*$/, '');
+          try {
+            return JSON.parse(`{${withoutTrailingComma}}`);
+          } catch {
+            throw new Error('Formato JSON inválido. Verifique as aspas, vírgulas e chaves.');
+          }
+        }
+      }
+
+      function formatDatePtBr(isoString) {
+        const dateObj = new Date(isoString);
+        const parts = ptBrFormatter.formatToParts(dateObj);
+        const map = {};
+        for (const part of parts) {
+          map[part.type] = part.value;
+        }
+        return `${map.day}/${map.month}/${map.year} ${map.hour}:${map.minute}:${map.second}`;
+      }
+
+      function pad2(num) {
+        return String(num).padStart(2, '0');
+      }
+
+      function applyExpiredState() {
+        expiredBanner.hidden = false;
+        qrWrapper.classList.add('is-expired');
+        countdownEl.classList.add('is-expired');
+        countdownEl.textContent = '00:00:00';
+        copyBtn.disabled = true;
+      }
+
+      function applyActiveState() {
+        expiredBanner.hidden = true;
+        qrWrapper.classList.remove('is-expired');
+        countdownEl.classList.remove('is-expired');
+        copyBtn.disabled = false;
+      }
+
+      function computeRemainingSeconds(expirationIso) {
+        if (typeof Temporal !== 'undefined') {
+          try {
+            const tz = 'America/Sao_Paulo';
+            const now = Temporal.Now.zonedDateTimeISO(tz);
+            const targetInstant = Temporal.Instant.from(expirationIso);
+            const target = targetInstant.toZonedDateTimeISO(tz);
+            const diff = now.until(target, { largestUnit: 'hour', smallestUnit: 'second' });
+            if (diff.sign <= 0) {
+              return { expired: true, hours: 0, minutes: 0, seconds: 0 };
+            }
+            return {
+              expired: false,
+              hours: diff.hours,
+              minutes: diff.minutes,
+              seconds: diff.seconds
+            };
+          } catch {
+            // Fallback para cálculo com Date caso a string ISO não tenha offset compatível
+          }
+        }
+
+        const targetMs = new Date(expirationIso).getTime();
+        const diffSeconds = Math.floor((targetMs - Date.now()) / 1000);
+        if (diffSeconds <= 0) {
+          return { expired: true, hours: 0, minutes: 0, seconds: 0 };
+        }
+        const hours = Math.floor(diffSeconds / 3600);
+        const minutes = Math.floor((diffSeconds % 3600) / 60);
+        const seconds = diffSeconds % 60;
+        return { expired: false, hours, minutes, seconds };
+      }
+
+      function startCountdown(expirationIso, initiallyExpired) {
+        if (countdownTimer) {
+          clearInterval(countdownTimer);
+          countdownTimer = null;
+        }
+
+        if (initiallyExpired) {
+          applyExpiredState();
+          return;
+        }
+
+        const tick = () => {
+          const remaining = computeRemainingSeconds(expirationIso);
+          if (remaining.expired) {
+            applyExpiredState();
+            if (countdownTimer) {
+              clearInterval(countdownTimer);
+              countdownTimer = null;
+            }
+            return;
+          }
+          applyActiveState();
+          countdownEl.textContent = `${pad2(remaining.hours)}:${pad2(remaining.minutes)}:${pad2(remaining.seconds)}`;
+        };
+
+        tick();
+        countdownTimer = setInterval(tick, 1000);
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        clearError();
+        copyFeedback.textContent = '';
+
+        let parsedBody;
+        try {
+          parsedBody = parseUserJson(jsonInput.value);
+        } catch (err) {
+          showError(err.message);
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/qr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(parsedBody)
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            const detail = typeof data.detail === 'string'
+              ? data.detail
+              : 'Erro ao validar os dados informados.';
+            showError(detail);
+            return;
+          }
+
+          currentQrBase64 = data.qr_png_base64;
+          currentCopyPaste = data.copy_paste;
+          currentRawExpiration = String(parsedBody.expiration).trim();
+
+          qrImage.src = `data:image/png;base64,${data.qr_png_base64}`;
+          copyPasteInput.value = data.copy_paste;
+          expirationFormatted.textContent = formatDatePtBr(data.expiration);
+          copyBtn.textContent = 'Copiar para o e-mail';
+          resultSection.hidden = false;
+
+          startCountdown(data.expiration, Boolean(data.expired));
+        } catch {
+          showError('Não foi possível conectar ao servidor. Verifique se o backend está em execução.');
+        }
+      });
+
+      function copyRichHtmlBlock(htmlContent) {
+        const tempDiv = document.createElement('div');
+        tempDiv.contentEditable = 'true';
+        tempDiv.style.position = 'fixed';
+        tempDiv.style.left = '-9999px';
+        tempDiv.style.top = '0';
+        tempDiv.style.backgroundColor = '#ffffff';
+        tempDiv.style.color = '#000000';
+        tempDiv.innerHTML = htmlContent;
+        document.body.appendChild(tempDiv);
+
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(tempDiv);
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        let copied = false;
+        try {
+          copied = document.execCommand('copy');
+        } finally {
+          selection.removeAllRanges();
+          document.body.removeChild(tempDiv);
+        }
+        return copied;
+      }
+
+      copyBtn.addEventListener('click', async () => {
+        if (copyBtn.disabled || !currentCopyPaste) {
+          return;
+        }
+
+        const htmlContent = `<div>
+  <b>QR Code:</b><br>
+  <br>
+  <img src="data:image/png;base64,${currentQrBase64}" width="150" height="150" alt="QR Code Pix"><br>
+  <br>
+  <b>Copia e Cola:</b><br>
+  <br>
+  <span style="word-break:break-all">${currentCopyPaste}</span><br>
+  <br>
+  <b>Data de Expiração:</b> ${currentRawExpiration}
+</div>`;
+
+        const textContent = `QR Code:\n\nCopia e Cola:\n\n${currentCopyPaste}\n\nData de Expiração: ${currentRawExpiration}`;
+
+        try {
+          // Usa seleção de DOM real com execCommand('copy') primeiro para evitar que o
+          // sanitizador do ClipboardItem remova imagens data:image/png;base64 no Chrome/Edge.
+          const copiedViaDom = copyRichHtmlBlock(htmlContent);
+
+          if (!copiedViaDom) {
+            if (typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
+              const blobHtml = new Blob([htmlContent], { type: 'text/html' });
+              const blobTexto = new Blob([textContent], { type: 'text/plain' });
+              await navigator.clipboard.write([
+                new ClipboardItem({
+                  'text/html': blobHtml,
+                  'text/plain': blobTexto
+                })
+              ]);
+            } else {
+              throw new Error('Falha ao copiar conteúdo.');
+            }
+          }
+
+          copyBtn.textContent = 'Copiado!';
+          if (copyFeedbackTimer) {
+            clearTimeout(copyFeedbackTimer);
+          }
+          copyFeedbackTimer = setTimeout(() => {
+            copyBtn.textContent = 'Copiar para o e-mail';
+          }, 2000);
+        } catch {
+          showError('Não foi possível copiar automaticamente. Selecione o código e copie manualmente.');
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
